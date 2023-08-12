@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>嵌入式Linux-系统调用 | Hexo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="注: 本文档中的所有代码均运行于arm32平台上  1. 什么是系统调用(syscall)?无论是嵌入式系统还是桌面PC中, 使用的CPU往往都会有多个运行模式,cpu在这些不同的模式下的权限是不同的, 低权限无法使用一些特权指令, 而且Linux系统也存在两个状态, 用户态和内核态, 用户态在运行时有时候会需要进行一些特权操作, 例如读写文件, 建立socket连接等等操作需要进入内核态, 而操">
+<meta property="og:type" content="article">
+<meta property="og:title" content="嵌入式Linux-系统调用">
+<meta property="og:url" content="http://example.com/2023/08/12/%E5%B5%8C%E5%85%A5%E5%BC%8FLinux-%E7%B3%BB%E7%BB%9F%E8%B0%83%E7%94%A8/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="注: 本文档中的所有代码均运行于arm32平台上  1. 什么是系统调用(syscall)?无论是嵌入式系统还是桌面PC中, 使用的CPU往往都会有多个运行模式,cpu在这些不同的模式下的权限是不同的, 低权限无法使用一些特权指令, 而且Linux系统也存在两个状态, 用户态和内核态, 用户态在运行时有时候会需要进行一些特权操作, 例如读写文件, 建立socket连接等等操作需要进入内核态, 而操">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://pic.imgdb.cn/item/64d79d711ddac507cc822841.png">
+<meta property="og:image" content="https://pic.imgdb.cn/item/64d79d7a1ddac507cc8241df.png">
+<meta property="og:image" content="https://pic.imgdb.cn/item/64d79d841ddac507cc825ea1.png">
+<meta property="og:image" content="https://pic.imgdb.cn/item/64d79d8a1ddac507cc8270e1.png">
+<meta property="og:image" content="https://pic.imgdb.cn/item/64d79d921ddac507cc8287b6.png">
+<meta property="og:image" content="https://pic.imgdb.cn/item/64d79d991ddac507cc829d4d.png">
+<meta property="og:image" content="https://pic.imgdb.cn/item/64d79da51ddac507cc82bf76.png">
+<meta property="article:published_time" content="2023-08-12T14:58:23.000Z">
+<meta property="article:modified_time" content="2023-08-12T15:23:58.139Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="Linux内核">
+<meta property="article:tag" content="ARM">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://pic.imgdb.cn/item/64d79d711ddac507cc822841.png">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="shortcut icon" href="/favicon.png">
+  
+  
+    
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/typeface-source-code-pro@0.0.71/index.min.css">
+
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+    
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.min.css">
+
+  
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Hexo</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"><span class="fa fa-bars"></span></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+        
+          <a class="nav-icon" href="/atom.xml" title="RSS Feed"><span class="fa fa-rss"></span></a>
+        
+        <a class="nav-icon nav-search-btn" title="Search"><span class="fa fa-search"></span></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://example.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+
+      <div class="outer">
+        <section id="main"><article id="post-嵌入式Linux-系统调用" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/2023/08/12/%E5%B5%8C%E5%85%A5%E5%BC%8FLinux-%E7%B3%BB%E7%BB%9F%E8%B0%83%E7%94%A8/" class="article-date">
+  <time class="dt-published" datetime="2023-08-12T14:58:23.000Z" itemprop="datePublished">2023-08-12</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/">嵌入式开发</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="p-name article-title" itemprop="headline name">
+      嵌入式Linux-系统调用
+    </h1>
+  
+
+      </header>
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <div align="center">注: 本文档中的所有代码均运行于arm32平台上</div>
+
+<h2 id="1-什么是系统调用-syscall"><a href="#1-什么是系统调用-syscall" class="headerlink" title="1. 什么是系统调用(syscall)?"></a>1. 什么是系统调用(syscall)?</h2><p><strong>无论是嵌入式系统还是桌面PC中, 使用的CPU往往都会有多个运行模式,cpu在这些不同的模式下的权限是不同的, 低权限无法使用一些<code>特权指令</code>, 而且Linux系统也存在两个状态, 用户态和内核态, 用户态在运行时有时候会需要进行一些特权操作, 例如读写文件, 建立socket连接等等操作需要进入内核态, 而操作系统提供给用户的接口就叫做<code>系统调用</code></strong></p>
+<h3 id="不同CPU的各种模式"><a href="#不同CPU的各种模式" class="headerlink" title="不同CPU的各种模式"></a>不同CPU的各种模式</h3><ul>
+<li><p><strong>X86</strong> </p>
+<p><strong>ring0-ring3</strong></p>
+</li>
+<li><p><strong>ARM 32bit</strong></p>
+<ul>
+<li><strong>USR - 用户模式</strong></li>
+<li><strong>IRQ - 普通处理中断模式</strong></li>
+<li><strong>FIQ - 快速处理中断模式</strong></li>
+<li>**SVC - 操作系统保护模式 **</li>
+<li><strong>ABT - 中止模式,处理存储器故障、实现虚拟存储器和存储器保护</strong></li>
+<li><strong>UND - 未定义, 处理未定义的指令陷阱，支持硬件协处理器的软件仿真</strong></li>
+<li><strong>SYS  - 系统模式, 运行特权操作系统任务</strong></li>
+</ul>
+</li>
+<li><p><strong>ARM 64bit</strong></p>
+<p><strong>EL1-EL4</strong></p>
+</li>
+</ul>
+<h2 id="2-Linux的系统调用"><a href="#2-Linux的系统调用" class="headerlink" title="2. Linux的系统调用"></a>2. Linux的系统调用</h2><p><strong>Linux的系统调用主要分为系统调用表的定义, 系统调用函数的声明, 系统调用函数的实现</strong></p>
+<div align="center">注:KERNEL_DIR 为你的Linux内核源码目录</div>
+
+<h3 id="系统调用表"><a href="#系统调用表" class="headerlink" title="系统调用表"></a>系统调用表</h3><p><strong>在Linux内核中, 系统调用想要被操作系统找到, 首先需要在一个系统调用表中添加定义</strong></p>
+<p><strong>该表的位置在: <code>KERNEL_DIR/arch/arm/include/generated/calls-eabi.S</code></strong></p>
+<p><em>注: 若不是嵌入式系统该文件该文件则位于: KERNEL_DIR&#x2F;arch&#x2F;arm&#x2F;include&#x2F;generated&#x2F;calls-oabi.S</em></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">NATIVE(0, sys_restart_syscall)</span><br><span class="line">NATIVE(1, sys_exit)</span><br><span class="line">NATIVE(2, sys_fork)</span><br><span class="line">NATIVE(3, sys_read)</span><br><span class="line">NATIVE(4, sys_write)</span><br><span class="line">NATIVE(5, sys_open)</span><br><span class="line">NATIVE(6, sys_close)</span><br><span class="line">NATIVE(8, sys_creat)</span><br><span class="line">NATIVE(9, sys_link)</span><br><span class="line">...</span><br><span class="line">NATIVE(437, sys_openat2)</span><br><span class="line">NATIVE(438, sys_pidfd_getfd)</span><br><span class="line">NATIVE(439, sys_faccessat2)</span><br><span class="line">NATIVE(440, sys_process_madvise)</span><br></pre></td></tr></table></figure>
+
+<h3 id="系统调用函数的声明"><a href="#系统调用函数的声明" class="headerlink" title="系统调用函数的声明"></a>系统调用函数的声明</h3><p><strong>Linux系统中系统调用函数的声明在一个统一的头文件中, 位于: <code>KERNEL_DIR/include/linux/syscalls.h</code></strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* fs/dcache.c */</span></span><br><span class="line">asmlinkage <span class="type">long</span> <span class="title function_">sys_getcwd</span><span class="params">(<span class="type">char</span> __user *buf, <span class="type">unsigned</span> <span class="type">long</span> size)</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* fs/cookies.c */</span></span><br><span class="line">asmlinkage <span class="type">long</span> <span class="title function_">sys_lookup_dcookie</span><span class="params">(u64 cookie64, <span class="type">char</span> __user *buf, <span class="type">size_t</span> len)</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* fs/eventfd.c */</span></span><br><span class="line">asmlinkage <span class="type">long</span> <span class="title function_">sys_eventfd2</span><span class="params">(<span class="type">unsigned</span> <span class="type">int</span> count, <span class="type">int</span> flags)</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* fs/eventpoll.c */</span></span><br><span class="line">asmlinkage <span class="type">long</span> <span class="title function_">sys_epoll_create1</span><span class="params">(<span class="type">int</span> flags)</span>;</span><br><span class="line">asmlinkage <span class="type">long</span> <span class="title function_">sys_epoll_ctl</span><span class="params">(<span class="type">int</span> epfd, <span class="type">int</span> op, <span class="type">int</span> fd,</span></span><br><span class="line"><span class="params">				<span class="keyword">struct</span> epoll_event __user *event)</span>;</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+<h3 id="系统调用函数的实现"><a href="#系统调用函数的实现" class="headerlink" title="系统调用函数的实现"></a>系统调用函数的实现</h3><p><strong>Linux系统调用函数的实现并不统一, 例如sys_kill函数就位于: <code>KERNEL/arch/arm/kernel/signal.c</code>中</strong></p>
+<p><strong>其他的系统调用分布在Linux源码中各个模块的文件中</strong></p>
+<h2 id="3-用代码使用系统调用"><a href="#3-用代码使用系统调用" class="headerlink" title="3. 用代码使用系统调用"></a>3. 用代码使用系统调用</h2><p><strong>Linux系统提供了一个syscall函数, 通过该函数可以进行系统调用</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">long syscall(long number, ...);</span><br></pre></td></tr></table></figure>
+
+<p><strong>使用该函数需要先包含以下头文件</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/syscall.h&gt;</span></span></span><br></pre></td></tr></table></figure>
+
+<p><strong>下面使用syscall实现一个简单的printf函数, 将字符串输出至终端</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/syscall.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span> *argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">    syscall(<span class="number">4</span>, <span class="number">1</span>, <span class="string">&quot;Hello World\n&quot;</span>, <span class="number">12</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>传入系统调用参数的含义如下:</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">4</span>: 指定的系统调用号, 通过在系统调用表中的定义, sys_write函数的序号为<span class="number">4</span> </span><br></pre></td></tr></table></figure>
+
+<p><img src="https://pic.imgdb.cn/item/64d79d711ddac507cc822841.png" alt="image-20221020150810029"></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span>: 你想向哪个文件写入, 在Linux系统中, 一切皆文件, 包括当前终端, 终端的文件描述符为<span class="number">1</span></span><br><span class="line"><span class="string">&quot;Hello World\n&quot;</span>: 想要写入的字符串地址</span><br><span class="line"><span class="number">12</span>: 字符串长度</span><br></pre></td></tr></table></figure>
+
+<p><strong>交叉编译该文件, 复制可执行文件至开发板上可以看到执行结果:</strong></p>
+<p><img src="https://pic.imgdb.cn/item/64d79d7a1ddac507cc8241df.png" alt="image-20221020151725520"></p>
+<h2 id="4-如何添加一个系统调用"><a href="#4-如何添加一个系统调用" class="headerlink" title="4. 如何添加一个系统调用"></a>4. 如何添加一个系统调用</h2><p><strong>如果想在Linux内核中添加自己的系统调用, 可以像第二部分中的一样, 在三个文件中分别添加自己的定义和实现</strong></p>
+<h3 id="1-添加系统调用表"><a href="#1-添加系统调用表" class="headerlink" title="1. 添加系统调用表"></a>1. 添加系统调用表</h3><p><strong>在calls-eabi.S中追加一行代码</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">NATIVE(441, sys_hello)	;注意, 不要使用重复的系统调用号</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-添加系统调用函数声明"><a href="#2-添加系统调用函数声明" class="headerlink" title="2. 添加系统调用函数声明"></a>2. 添加系统调用函数声明</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*自定义的系统调用*/</span></span><br><span class="line">asmlinkage <span class="type">void</span> <span class="title function_">sys_helo</span><span class="params">(<span class="type">const</span> <span class="type">char</span> __user *buff, <span class="type">size_t</span> count)</span>;</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-添加系统调用函数实现"><a href="#3-添加系统调用函数实现" class="headerlink" title="3. 添加系统调用函数实现"></a>3. 添加系统调用函数实现</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">asmlinkage <span class="type">void</span> <span class="title function_">sys_hello</span><span class="params">(<span class="type">char</span> __user *buff, <span class="type">size_t</span> count)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">char</span> kernel_buf[<span class="number">100</span>] = &#123;<span class="number">0</span>&#125;;</span><br><span class="line">	<span class="keyword">if</span> (buff) &#123;</span><br><span class="line">		copy_from_user(kernel_buf, buff, count &gt; <span class="number">100</span> ? <span class="number">100</span> : count);</span><br><span class="line">		kernel_buf[<span class="number">99</span>] = <span class="string">&#x27;\0&#x27;</span>;</span><br><span class="line">		printk(<span class="string">&quot;sys_hello: %s\n&quot;</span>, kernel_buf);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="编译测试"><a href="#编译测试" class="headerlink" title="编译测试"></a>编译测试</h3><p>**重新编译出zImage, uImage后更新内核文件, 编写系统调用测试代码如下: **</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;sys/syscall.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span> *argv[])</span></span><br><span class="line">&#123;</span><br><span class="line">    syscall(<span class="number">441</span>, <span class="string">&quot;this is sys_hello\n&quot;</span>, <span class="number">18</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>交叉编译后执行如下:</strong></p>
+<p><img src="https://pic.imgdb.cn/item/64d79d841ddac507cc825ea1.png" alt="image-20221020153904465"></p>
+<p><strong>成功执行了自己的系统调用</strong></p>
+<h2 id="5-系统调用流程分析"><a href="#5-系统调用流程分析" class="headerlink" title="5. 系统调用流程分析"></a>5. 系统调用流程分析</h2><div align="center">注: arm32中svc指令等同于swi</div>
+
+<p><strong>通过查看man文档, 可以看到, 在进行系统调用时, 有一个指令让cpu进入特权模式, 同时将系统调用号, 系统调用参数传递进入cpu的寄存器中, 具体如下图:</strong></p>
+<p><img src="https://pic.imgdb.cn/item/64d79d8a1ddac507cc8270e1.png" alt="image-20221020155208575"></p>
+<p><img src="https://pic.imgdb.cn/item/64d79d921ddac507cc8287b6.png" alt="image-20221020155448778"></p>
+<p><strong>通过该图可以看到, arm32-eabi平台上, 使cpu进入特权模式的指令是swi 0, 系统调用号保存在r7寄存器中, 而函数的参数则保存在r0-r6寄存器中</strong></p>
+<p><strong>使用编译器编译代码时, 会默认链接上glibc的库, glibc是gnu组织发起的c标准库实现, 该库实现了对系统调用的封装, 通过反汇编该arm-libc.so动态库, 可以查到关于write操作的具体指令如下:</strong></p>
+<p><img src="https://pic.imgdb.cn/item/64d79d991ddac507cc829d4d.png" alt="image-20221020155730745"></p>
+<p><strong>查看write函数的实现, 发现其将4传入了r7寄存器,这个4就是sys_write的系统调用号 然后执行了svc 0, cpu进入特权模式, 和上面提到的流程一样</strong></p>
+<p><strong>在cpu执行了swi&#x2F;svc 0指令后, 便跳转进入了相关的swi&#x2F;svc handler中断服务函数, 该函数定义在: <code>KERNEL_DIR/arch/arm/kernel/entry-common.S</code></strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br></pre></td><td class="code"><pre><span class="line">/*=============================================================================</span><br><span class="line"> * SWI handler</span><br><span class="line"> *-----------------------------------------------------------------------------</span><br><span class="line"> */</span><br><span class="line"></span><br><span class="line">	.align	5</span><br><span class="line">ENTRY(vector_swi)</span><br><span class="line">#ifdef CONFIG_CPU_V7M</span><br><span class="line">	v7m_exception_entry</span><br><span class="line">#else</span><br><span class="line">	sub	sp, sp, #PT_REGS_SIZE</span><br><span class="line">	stmia	sp, &#123;r0 - r12&#125;			@ Calling r0 - r12</span><br><span class="line"> ARM(	add	r8, sp, #S_PC		)</span><br><span class="line"> ARM(	stmdb	r8, &#123;sp, lr&#125;^		)	@ Calling sp, lr</span><br><span class="line"> THUMB(	mov	r8, sp			)</span><br><span class="line"> THUMB(	store_user_sp_lr r8, r10, S_SP	)	@ calling sp, lr</span><br><span class="line">	mrs	saved_psr, spsr			@ called from non-FIQ mode, so ok.</span><br><span class="line"> TRACE(	mov	saved_pc, lr		)</span><br><span class="line">	str	saved_pc, [sp, #S_PC]		@ Save calling PC</span><br><span class="line">	str	saved_psr, [sp, #S_PSR]		@ Save CPSR</span><br><span class="line">	str	r0, [sp, #S_OLD_R0]		@ Save OLD_R0</span><br><span class="line">#endif</span><br><span class="line">	zero_fp</span><br><span class="line">	alignment_trap r10, ip, __cr_alignment</span><br><span class="line">	asm_trace_hardirqs_on save=0</span><br><span class="line">	enable_irq_notrace</span><br><span class="line">	ct_user_exit save=0</span><br><span class="line"></span><br><span class="line">	/*</span><br><span class="line">	 * Get the system call number.</span><br><span class="line">	 */</span><br><span class="line"></span><br><span class="line">#if defined(CONFIG_OABI_COMPAT)</span><br><span class="line"></span><br><span class="line">	/*</span><br><span class="line">	 * If we have CONFIG_OABI_COMPAT then we need to look at the swi</span><br><span class="line">	 * value to determine if it is an EABI or an old ABI call.</span><br><span class="line">	 */</span><br><span class="line">#ifdef CONFIG_ARM_THUMB</span><br><span class="line">	tst	saved_psr, #PSR_T_BIT</span><br><span class="line">	movne	r10, #0				@ no thumb OABI emulation</span><br><span class="line"> USER(	ldreq	r10, [saved_pc, #-4]	)	@ get SWI instruction</span><br><span class="line">#else</span><br><span class="line"> USER(	ldr	r10, [saved_pc, #-4]	)	@ get SWI instruction</span><br><span class="line">#endif</span><br><span class="line"> ARM_BE8(rev	r10, r10)			@ little endian instruction</span><br><span class="line"></span><br><span class="line">#elif defined(CONFIG_AEABI)</span><br><span class="line"></span><br><span class="line">	/*</span><br><span class="line">	 * Pure EABI user space always put syscall number into scno (r7).</span><br><span class="line">	 */</span><br><span class="line">#elif defined(CONFIG_ARM_THUMB)</span><br><span class="line">	/* Legacy ABI only, possibly thumb mode. */</span><br><span class="line">	tst	saved_psr, #PSR_T_BIT		@ this is SPSR from save_user_regs</span><br><span class="line">	addne	scno, r7, #__NR_SYSCALL_BASE	@ put OS number in</span><br><span class="line"> USER(	ldreq	scno, [saved_pc, #-4]	)</span><br><span class="line"></span><br><span class="line">#else</span><br><span class="line">	/* Legacy ABI only. */</span><br><span class="line"> USER(	ldr	scno, [saved_pc, #-4]	)	@ get SWI instruction</span><br><span class="line">#endif</span><br><span class="line"></span><br><span class="line">	/* saved_psr and saved_pc are now dead */</span><br><span class="line"></span><br><span class="line">	uaccess_disable tbl</span><br><span class="line"></span><br><span class="line">	adr	tbl, sys_call_table		@ load syscall table pointer</span><br><span class="line"></span><br><span class="line">#if defined(CONFIG_OABI_COMPAT)</span><br><span class="line">	/*</span><br><span class="line">	 * If the swi argument is zero, this is an EABI call and we do nothing.</span><br><span class="line">	 *</span><br><span class="line">	 * If this is an old ABI call, get the syscall number into scno and</span><br><span class="line">	 * get the old ABI syscall table address.</span><br><span class="line">	 */</span><br><span class="line">	bics	r10, r10, #0xff000000</span><br><span class="line">	eorne	scno, r10, #__NR_OABI_SYSCALL_BASE</span><br><span class="line">	ldrne	tbl, =sys_oabi_call_table</span><br><span class="line">#elif !defined(CONFIG_AEABI)</span><br><span class="line">	bic	scno, scno, #0xff000000		@ mask off SWI op-code</span><br><span class="line">	eor	scno, scno, #__NR_SYSCALL_BASE	@ check OS number</span><br><span class="line">#endif</span><br><span class="line">	get_thread_info tsk</span><br><span class="line">	/*</span><br><span class="line">	 * Reload the registers that may have been corrupted on entry to</span><br><span class="line">	 * the syscall assembly (by tracing or context tracking.)</span><br><span class="line">	 */</span><br><span class="line"> TRACE(	ldmia	sp, &#123;r0 - r3&#125;		)</span><br><span class="line"></span><br><span class="line">local_restart:</span><br><span class="line">	ldr	r10, [tsk, #TI_FLAGS]		@ check for syscall tracing</span><br><span class="line">	stmdb	sp!, &#123;r4, r5&#125;			@ push fifth and sixth args</span><br><span class="line"></span><br><span class="line">	tst	r10, #_TIF_SYSCALL_WORK		@ are we tracing syscalls?</span><br><span class="line">	bne	__sys_trace</span><br><span class="line"></span><br><span class="line">	invoke_syscall tbl, scno, r10, __ret_fast_syscall</span><br><span class="line"></span><br><span class="line">	add	r1, sp, #S_OFF</span><br><span class="line">2:	cmp	scno, #(__ARM_NR_BASE - __NR_SYSCALL_BASE)</span><br><span class="line">	eor	r0, scno, #__NR_SYSCALL_BASE	@ put OS number back</span><br><span class="line">	bcs	arm_syscall</span><br><span class="line">	mov	why, #0				@ no longer a real syscall</span><br><span class="line">	b	sys_ni_syscall			@ not private func</span><br><span class="line"></span><br><span class="line">#if defined(CONFIG_OABI_COMPAT) || !defined(CONFIG_AEABI)</span><br><span class="line">	/*</span><br><span class="line">	 * We failed to handle a fault trying to access the page</span><br><span class="line">	 * containing the swi instruction, but we&#x27;re not really in a</span><br><span class="line">	 * position to return -EFAULT. Instead, return back to the</span><br><span class="line">	 * instruction and re-enter the user fault handling path trying</span><br><span class="line">	 * to page it in. This will likely result in sending SEGV to the</span><br><span class="line">	 * current task.</span><br><span class="line">	 */</span><br><span class="line">9001:</span><br><span class="line">	sub	lr, saved_pc, #4</span><br><span class="line">	str	lr, [sp, #S_PC]</span><br><span class="line">	get_thread_info tsk</span><br><span class="line">	b	ret_fast_syscall</span><br><span class="line">#endif</span><br><span class="line">ENDPROC(vector_swi)</span><br></pre></td></tr></table></figure>
+
+<p><strong>上面的函数会导入系统调用表的指针, 并读取r7寄存器的值, 然后根据该值从系统调用表查找相应的系统调用函数, 并跳入该函数执行系统调用</strong></p>
+<h2 id="6-虚拟系统调用-vsyscall"><a href="#6-虚拟系统调用-vsyscall" class="headerlink" title="6. 虚拟系统调用(vsyscall)"></a>6. 虚拟系统调用(vsyscall)</h2><p><strong>普通系统调用的流程需要从用户态-&gt;内核态-&gt;用户态, 中间需要经过大量的cpu状态切换, 需要大量的寄存器需要保存和恢复, 这个过程会耗费大量的时间, 对于一些只是简单读取一些数据的系统调用, 完全不需要这些操作, 例如读取当前时间, 不需要进行大量的cpu状态切换, 只是读取硬件的某个值罢了, 所以, 为了缓解该情况, 虚拟系统调用应运而生</strong></p>
+<p><strong>系统调用中含有一个sys_time的函数, 该系统调用会读取硬件的时间返回给用户, 但是这个系统调用会带来一定的开销, 为了减小开销, glibc对该系统调用进行了优化, 通过mmap之类的函数将硬件地址映射在虚拟地址, 这样用户就可以直接读取虚拟地址的值, 而不需要反复切换cpu状态浪费资源</strong></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /proc/self/maps #该命令可以输出当前进程的内存使用情况</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://pic.imgdb.cn/item/64d79da51ddac507cc82bf76.png" alt="image-20221020170609816"></p>
+<p><strong>可以内存中看到有5个分区, 其中有常规的堆区&#x2F;栈区, 还有一个vsyscall区, 这个区域就是glibc对部分系统调用实现的虚拟系统调用</strong></p>
+<h2 id="7-虚拟动态共享对象VDSO-virtual-dynamic-shared-object"><a href="#7-虚拟动态共享对象VDSO-virtual-dynamic-shared-object" class="headerlink" title="7. 虚拟动态共享对象VDSO(virtual dynamic shared object)"></a>7. 虚拟动态共享对象VDSO(virtual dynamic shared object)</h2><p><strong>VSDO可以认为是vsyscall的升级版本, vsyscall的缺点有很多, 比如它的内存地址是固定写死在程序里的, 很容易被恶意程序攻击, 且仅支持4个系统调用, 而在glibc-2.22版本之后, gnu组织加入了vdso对象, 它支持更多的虚拟系统调用, 而且使用了动态内存地址, 进一步提高了安全性, 速度更快</strong></p>
+<p><strong>为了兼容以前的程序, gnu并没有删除vsyscall的内容, 依然提供vsyscall的支持</strong></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2023/08/12/%E5%B5%8C%E5%85%A5%E5%BC%8FLinux-%E7%B3%BB%E7%BB%9F%E8%B0%83%E7%94%A8/" data-id="cll8647xx0001jom33vcx2so7" data-title="嵌入式Linux-系统调用" class="article-share-link"><span class="fa fa-share">Share</span></a>
+      
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/ARM/" rel="tag">ARM</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Linux%E5%86%85%E6%A0%B8/" rel="tag">Linux内核</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2023/08/12/%E5%B5%8C%E5%85%A5%E5%BC%8FLinux-%E4%B8%AD%E6%96%AD%E5%AD%90%E7%B3%BB%E7%BB%9F/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          嵌入式Linux-中断子系统
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2023/06/11/%E4%BB%8E%E9%9B%B6%E5%BC%80%E5%A7%8B%E8%87%AA%E5%88%B6RTOS/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">从零开始自制RTOS</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/%E5%B5%8C%E5%85%A5%E5%BC%8F%E5%BC%80%E5%8F%91/">嵌入式开发</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/ARM/" rel="tag">ARM</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Linux%E5%86%85%E6%A0%B8/" rel="tag">Linux内核</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RTOS/" rel="tag">RTOS</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/STM32/" rel="tag">STM32</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E4%B8%AD%E6%96%AD/" rel="tag">中断</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/" rel="tag">操作系统</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/ARM/" style="font-size: 20px;">ARM</a> <a href="/tags/Linux%E5%86%85%E6%A0%B8/" style="font-size: 20px;">Linux内核</a> <a href="/tags/RTOS/" style="font-size: 10px;">RTOS</a> <a href="/tags/STM32/" style="font-size: 10px;">STM32</a> <a href="/tags/%E4%B8%AD%E6%96%AD/" style="font-size: 10px;">中断</a> <a href="/tags/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/" style="font-size: 10px;">操作系统</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/08/">August 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/06/">June 2023</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2023/08/12/%E5%B5%8C%E5%85%A5%E5%BC%8FLinux-%E4%B8%AD%E6%96%AD%E5%AD%90%E7%B3%BB%E7%BB%9F/">嵌入式Linux-中断子系统</a>
+          </li>
+        
+          <li>
+            <a href="/2023/08/12/%E5%B5%8C%E5%85%A5%E5%BC%8FLinux-%E7%B3%BB%E7%BB%9F%E8%B0%83%E7%94%A8/">嵌入式Linux-系统调用</a>
+          </li>
+        
+          <li>
+            <a href="/2023/06/11/%E4%BB%8E%E9%9B%B6%E5%BC%80%E5%A7%8B%E8%87%AA%E5%88%B6RTOS/">从零开始自制RTOS</a>
+          </li>
+        
+          <li>
+            <a href="/2023/06/09/hello-world/">Hello World</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      
+      &copy; 2023 John Doe<br>
+      Powered by <a href="https://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+
+<script src="/js/jquery-3.6.4.min.js"></script>
+
+
+
+  
+<script src="/fancybox/jquery.fancybox.min.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+
+  </div>
+</body>
+</html>
